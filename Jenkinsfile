@@ -6,7 +6,7 @@ pipeline {
         CONTAINER_NAME = "api-dotnet-container"
         SONAR_PROJECT_KEY = "ApiScanTest"
         SONAR_PROJECT_NAME = "ApiScanTest"
-        SONAR_HOST_URL = "http://localhost:9000"
+        SONAR_HOST_URL = "http://192.168.1.17:9000"
     }
 
     stages {
