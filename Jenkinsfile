@@ -4,8 +4,8 @@ pipeline {
     environment {
         IMAGE_NAME = "api-dotnet-analyzer"
         CONTAINER_NAME = "api-dotnet-container"
-        SONAR_PROJECT_KEY = "dotnet-api"
-        SONAR_PROJECT_NAME = "API .NET Análisis"
+        SONAR_PROJECT_KEY = "ApiScanTest"
+        SONAR_PROJECT_NAME = "ApiScanTest"
         SONAR_HOST_URL = "http://localhost:9000"
     }
 
@@ -43,6 +43,14 @@ pipeline {
             }
         }
 
+        stage('Esperar Análisis Sonar') {
+            steps {
+                timeout(time: 1, unit: 'MINUTES') {
+                    waitForQualityGate abortPipeline: true
+                }
+            }
+        }
+
         stage('Build Imagen Docker') {
             steps {
                 sh 'docker build -t ${IMAGE_NAME} .'
@@ -51,16 +59,21 @@ pipeline {
 
         stage('Escaneo de Vulnerabilidades (Trivy)') {
             steps {
-                sh 'trivy image --severity CRITICAL,HIGH --exit-code 1 ${IMAGE_NAME} || true'
+                sh 'trivy image --severity CRITICAL,HIGH --exit-code 1 ${IMAGE_NAME}'
+            }
+        }
+
+        stage('Detener Contenedor Anterior') {
+            steps {
+                sh "docker stop ${CONTAINER_NAME} || true"
+                sh "docker rm ${CONTAINER_NAME} || true"
             }
         }
 
         stage('Desplegar') {
             steps {
                 script {
-                    sh 'docker stop ${CONTAINER_NAME} || true'
-                    sh 'docker rm ${CONTAINER_NAME} || true'
-                    sh 'docker run -d --name ${CONTAINER_NAME} -p 5006:8080 ${IMAGE_NAME}'
+                    sh 'docker run -d --name ${CONTAINER_NAME} -p 5006:80 ${IMAGE_NAME}'
                 }
             }
         }

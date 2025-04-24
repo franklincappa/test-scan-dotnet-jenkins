@@ -9,9 +9,10 @@ Incluye etapas de análisis estático con SonarQube y escaneo de vulnerabilidade
 - Docker Pipeline
 - Pipeline
 - Git Plugin
-- Blue Ocean
+- Blue Ocean (Opcional)
 - Pipeline Utility Steps
 - SonarQube Scanner for Jenkins
+- Quality Gates
 
 ### Docker
 Asegúrate de tener Docker instalado y disponible en el host de Jenkins.
@@ -25,10 +26,17 @@ Asegúrate de tener Docker instalado y disponible en el host de Jenkins.
 Instala Trivy en el host de Jenkins con:
 
 ```bash
-apt install wget -y
-wget https://github.com/aquasecurity/trivy/releases/latest/download/trivy_0.50.1_Linux-64bit.deb
-dpkg -i trivy_0.50.1_Linux-64bit.deb
+curl -sfL https://raw.githubusercontent.com/aquasecurity/trivy/main/contrib/install.sh | sudo sh -s -- -b /usr/local/bin v0.61.1
 ```
+
+- Probar instalación:
+```bash
+trivy --version
+```
+```bash
+trivy image nombre-imagen-analizar
+```
+
 
 ## 🧪 API de Prueba
 
@@ -61,7 +69,7 @@ RUN dotnet publish "./ApiScanTest.csproj" -c Release -o /app/publish
 FROM base AS final
 WORKDIR /app
 COPY --from=build /app/publish .
-EXPOSE 8080
+EXPOSE 80
 ENTRYPOINT ["dotnet", "ApiScanTest.dll"]
 ```
 ---
@@ -69,31 +77,20 @@ ENTRYPOINT ["dotnet", "ApiScanTest.dll"]
 ## 🔐 Jenkinsfile
 
 El pipeline incluye:
-1. Clonado del código.
-2. Análisis estático con SonarQube.
-3. Construcción de imagen Docker.
-4. Escaneo de la imagen con Trivy.
-5. Despliegue si todo pasa sin CVEs críticos.
+1. **Clonar Código**: Desde GitHub.
+2. **Build y Test**: Ejecuta `dotnet restore`, `build` y `test`.
+3. **Escaneo SonarQube**: Instala `dotnet-sonarscanner`, realiza análisis estático.
+4. **Espera de Calidad**: Aguarda el resultado del análisis de Sonar.
+5. **Build Docker**: Construye la imagen con la API.
+6. **Escaneo con Trivy**: Evalúa vulnerabilidades `CRITICAL` y `HIGH`.
+7. **Despliegue**: Corre el contenedor Docker y expone el API.
 
 Token de SonarQube debe estar configurado como variable segura en Jenkins con el nombre `SONAR_TOKEN`.
 
 ```groovy
 withSonarQubeEnv('MySonarQubeServer') {
-    sh 'sonar-scanner -Dsonar.projectKey=ApiScanTest -Dsonar.sources=. -Dsonar.host.url=$SONAR_HOST_URL -Dsonar.login=$SONAR_AUTH_TOKEN'
+    sh 'sonar-scanner -Dsonar.projectKey=ApiScanTest -Dsonar.sources=. -Dsonar.host.url=$SONAR_HOST_URL -Dsonar.login=$SONAR_TOKEN'
 }
-```
-
-
-## 📤 Comando para Compilar y Probar Localmente
-
-```bash
-dotnet build
-dotnet run --project ApiScanTest.csproj
-```
-
-Luego prueba en Postman:
-```
-http://localhost:5006/weatherforecast
 ```
 
 ---
@@ -103,10 +100,24 @@ http://localhost:5006/weatherforecast
 La API .NET Core (`ApiScanTest`) se expone externamente a través del puerto **5006**. Esto se logra mediante el mapeo de puertos en la etapa de despliegue del `Jenkinsfile`, donde se configura:
 
 ```bash
-docker run -d -p 5006:8080 --name api-scan-test api-scan-test
+docker run -d -p 5006:80 --name api-scan-test api-scan-test
 ```
 
-Esto indica que el contenedor escucha en el puerto **8080** interno, pero se accede desde fuera del contenedor por el **5006**, facilitando las pruebas con herramientas como Postman.
+
+Esto indica que el contenedor escucha en el puerto **80** interno, pero se accede desde fuera del contenedor por el **5006**, facilitando las pruebas con herramientas como Postman.
+
+```
+http://localhost:5006/swagger
+```
+
+
+---
+
+## 🧪 Resultado esperado
+- El pipeline se detendrá si:
+  - Fallan los tests.
+  - El análisis de SonarQube devuelve una nota baja.
+  - Trivy encuentra CVEs `CRITICAL` o `HIGH`.
 
 ---
 
