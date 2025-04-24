@@ -24,9 +24,9 @@ pipeline {
                 }
             }
             steps {
-                sh 'dotnet restore'
-                sh 'dotnet build --no-restore'
-                sh 'dotnet test --no-restore --no-build'
+                sh 'dotnet restore ApiScanTest.csproj'
+                sh 'dotnet build ApiScanTest.csproj --no-restore'
+                sh 'dotnet test ApiScanTest.csproj --no-restore --no-build'
             }
         }
 
@@ -48,7 +48,7 @@ pipeline {
                           /d:sonar.host.url="${SONAR_HOST_URL}" \
                           /d:sonar.login="${SONAR_TOKEN}"
 
-                        dotnet build
+                        dotnet build ApiScanTest.csproj
                         dotnet sonarscanner end /d:sonar.login="${SONAR_TOKEN}"
                     '''
                 }
