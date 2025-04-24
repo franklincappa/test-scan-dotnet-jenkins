@@ -17,6 +17,12 @@ pipeline {
         }
 
         stage('Build y Test') {
+            agent {
+                docker {
+                    image 'mcr.microsoft.com/dotnet/sdk:9.0'
+                    args '-u root:root'
+                }
+            }
             steps {
                 sh 'dotnet restore'
                 sh 'dotnet build --no-restore'
@@ -25,6 +31,12 @@ pipeline {
         }
 
         stage('Escaneo SonarQube') {
+            agent {
+                docker {
+                    image 'mcr.microsoft.com/dotnet/sdk:9.0'
+                    args '-u root:root'
+                }
+            }
             steps {
                 withCredentials([string(credentialsId: 'SONAR_TOKEN', variable: 'SONAR_TOKEN')]) {
                     sh '''
