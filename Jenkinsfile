@@ -40,6 +40,11 @@ pipeline {
             steps {
                 withCredentials([string(credentialsId: 'SONAR_TOKEN', variable: 'SONAR_TOKEN')]) {
                     sh '''
+                        apt-get update
+                        apt-get install -y openjdk-11-jdk
+                        export JAVA_HOME=/usr/lib/jvm/java-11-openjdk-amd64
+                        export PATH=$JAVA_HOME/bin:$PATH
+                        
                         dotnet tool install --global dotnet-sonarscanner
                         export PATH="$PATH:$HOME/.dotnet/tools"
                         dotnet sonarscanner begin \
