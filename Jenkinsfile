@@ -60,13 +60,13 @@ pipeline {
             }
         }
 
-        /*stage('Esperar Análisis Sonar') {
+        stage('Esperar Análisis Sonar') {
             steps {
                 timeout(time: 14, unit: 'MINUTES') {
                     waitForQualityGate abortPipeline: true
                 }
             }
-        }*/
+        }
 
         stage('Build Imagen Docker') {
             steps {
